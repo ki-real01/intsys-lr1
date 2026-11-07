@@ -1,0 +1,14 @@
+# Эксперимент 3: нагрузка (профиль CPU). Клиент отправляет следующий запрос, как только получил ответ на предыдущий.
+# На уровне n клиентов — max(16, 4n) запросов по 1024 токена с разным текстом, ответ — 128 токенов.
+# Пределы выбраны до опыта (см. hypothesis.md): TTFT у 90 % запросов <= 60 с, медиана TPOT <= 250 мс.
+experiment: lr1
+series: exp3_load
+kind: load
+prompt_tokens: 1024
+max_tokens: 128
+levels: [1, 2, 4]
+min_requests: 16
+requests_per_client: 4
+limits: {ttft_p90_s: 60.0, tpot_median_s: 0.25}
+expected_slots: 4
+request: {ignore_eos: true, cache_prompt: false}

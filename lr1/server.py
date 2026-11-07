@@ -21,6 +21,7 @@ def build_command(slots, ctx, threads, port):
     return [
         str(SERVER_EXE), "-m", str(MODEL), "-c", str(ctx), "-np", str(slots), "-t", str(threads),
         "-ngl", "0", "--host", "127.0.0.1", "--port", str(port), "-a", ALIAS, "--metrics",
+        "-lv", "4",  # без этого в журнале нет размера KV-кеша и параметров модели (нужны для паспорта)
     ]
 
 
@@ -75,7 +76,10 @@ def parse_log(log_path):
         return cast(m.group(1)) if m else None
 
     info = {
-        "build": next((l.strip() for l in lines if l.startswith("build:") or "build_info" in l), None),
+        "build": next((m.group(0) for m in (re.search(r"build \d+ \([0-9a-f]+\).*", l) for l in lines) if m), None),
+        "system_info": next((l.split("system_info:", 1)[1].strip() for l in lines if "system_info:" in l), None),
+        "n_ctx_slot": num(r"n_ctx_slot\s*=\s*(\d+)"),
+        "kv_unified": (re.search(r"kv_unified\s*=\s*'?(\w+)'?", text).group(1) if re.search(r"kv_unified\s*=", text) else None),
         "n_layer": num(r"print_info: n_layer\s*=\s*(\d+)"),
         "n_head": num(r"print_info: n_head\s*=\s*(\d+)"),
         "n_head_kv": num(r"print_info: n_head_kv\s*=\s*(\d+)"),
