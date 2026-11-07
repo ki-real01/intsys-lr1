@@ -1,0 +1,6 @@
+# Проверки реализации на живом сервере (п. 3.4 задания). В таблицы отчёта не входят.
+experiment: lr1
+series: checks
+kind: checks
+expected_slots: 1
+request: {ignore_eos: true, cache_prompt: false}

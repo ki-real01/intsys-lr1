@@ -1,0 +1,54 @@
+{
+  "datasets": {
+    "pride_and_prejudice": {
+      "source": "Project Gutenberg, Austen J. Pride and Prejudice, eBook № 1342",
+      "url": "https://www.gutenberg.org/cache/epub/1342/pg1342.txt",
+      "downloaded": "2026-11-07",
+      "license": "общественное достояние (Project Gutenberg License)",
+      "selection_rule": "берётся текст между строками «*** START OF THE PROJECT GUTENBERG EBOOK» и «*** END OF THE PROJECT GUTENBERG EBOOK», переводы строк CRLF заменяются на LF",
+      "records_total_chars_in_file": 772386,
+      "records_used_chars": 728713,
+      "excluded": "заголовок и лицензия Project Gutenberg",
+      "gutenberg_ebook_id": 1342,
+      "files": {
+        "data/pg1342.txt": {
+          "sha256": "3f6bb9d6f78e0293b56acd4714dd68cb7d6d1d293402031ce9d5a216bcaf9d75",
+          "bytes": 772386
+        }
+      }
+    }
+  },
+  "models": {
+    "qwen3_4b_q4km": {
+      "base_model": "Qwen/Qwen3-4B-Instruct-2507",
+      "base_model_revision": "cdbee75f17c01a7cc42f958dc650907174af0554",
+      "base_model_config": {
+        "num_hidden_layers": 36,
+        "num_attention_heads": 32,
+        "num_key_value_heads": 8,
+        "head_dim": 128,
+        "hidden_size": 2560,
+        "max_position_embeddings": 262144,
+        "torch_dtype": "bfloat16",
+        "source": "https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507/raw/main/config.json"
+      },
+      "gguf_repo": "bartowski/Qwen_Qwen3-4B-Instruct-2507-GGUF",
+      "gguf_revision": "ae44f08e1392f39c0e474af10c3ff8355c8b6688",
+      "gguf_url": "https://huggingface.co/bartowski/Qwen_Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen_Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+      "file": "Qwen_Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+      "format": "GGUF, квантование Q4_K_M",
+      "bytes": 2497280736,
+      "sha256": "2fde00ce69dd4899c70d020845e2638353015bba0fdf161b3eb965f2bca4464e",
+      "note": "официальных GGUF у модели нет; взята популярная сборка сообщества (bartowski)"
+    }
+  },
+  "tools": {
+    "llama_cpp": {
+      "version": "b12182 (0.9.0-dev, commit fd27b2034)",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12182/llama-b12182-bin-win-cpu-x64.zip",
+      "file": "llama-b12182-bin-win-cpu-x64.zip",
+      "bytes": 24749504,
+      "zip_sha256": "e068c483e2ea97bf09121ec0bbe085bd43470bb67d9062c7c66162164aea5834"
+    }
+  }
+}

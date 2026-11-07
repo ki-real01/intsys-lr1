@@ -1,0 +1,22 @@
+# окружение
+.venv/
+__pycache__/
+.pytest_cache/
+
+# сервер, модель и инструменты (скачиваются по манифесту)
+tools/
+models/
+server/server.json
+
+# артефакты запусков и базы (сдаются отдельно архивом)
+runs/
+runs_debug/
+server_logs/
+mlruns/
+mlartifacts/
+mlflow.db
+lr1_artifacts.zip
+
+# методички преподавателя (лежат рядом для удобства)
+LR1_llm_inference_serving.pdf
+00_course_rules.pdf

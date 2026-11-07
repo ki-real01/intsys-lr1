@@ -1,0 +1,5 @@
+* text=auto eol=lf
+# байты данных не меняются: от них зависит SHA-256 в манифесте
+data/** -text
+*.pdf binary
+*.png binary

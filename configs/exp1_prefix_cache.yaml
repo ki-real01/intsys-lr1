@@ -1,0 +1,9 @@
+# Эксперимент 1, п. 3: кеширование префикса. Один и тот же запрос трижды подряд (на CPU — 2048 токенов).
+experiment: lr1
+series: exp1_prefix_cache
+kind: prefix_cache
+prompt_tokens: 2048
+times: 3
+max_tokens: 16
+expected_slots: 1
+request: {ignore_eos: true, cache_prompt: true}

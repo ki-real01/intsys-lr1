@@ -1,0 +1,10 @@
+# Адрес сервера модели и параметры генерации по умолчанию. Используется всеми работами курса (ЛР2–ЛР8).
+# Сервер: llama.cpp llama-server, профиль CPU (см. server/passport_np1.json и server/passport_np4.json).
+endpoint:
+  base_url: http://127.0.0.1:8080/v1       # OpenAI-совместимый API
+  server_root: http://127.0.0.1:8080       # /tokenize, /props, /metrics, /health
+  model: Qwen3-4B-Instruct-2507            # имя, заданное флагом -a
+  api_key: none
+  timeout_s: 3600
+generation:
+  temperature: 0.0                         # всегда передаётся в запросе явно

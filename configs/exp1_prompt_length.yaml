@@ -1,0 +1,9 @@
+# Эксперимент 1: длина запроса и TTFT (профиль CPU). Запросы по одному, ответ — 16 токенов.
+experiment: lr1
+series: exp1_prompt_length
+kind: prompt_length
+lengths: [128, 512, 1024, 2048, 4096]
+repeats: 5
+max_tokens: 16
+expected_slots: 1
+request: {ignore_eos: true, cache_prompt: false}

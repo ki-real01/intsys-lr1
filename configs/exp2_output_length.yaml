@@ -1,0 +1,9 @@
+# Эксперимент 2: длина ответа и скорость генерации. Запрос — 1024 токена.
+experiment: lr1
+series: exp2_output_length
+kind: output_length
+prompt_tokens: 1024
+output_lengths: [16, 64, 256, 1024]
+repeats: 5
+expected_slots: 1
+request: {ignore_eos: true, cache_prompt: false}
