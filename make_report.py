@@ -102,7 +102,7 @@ def main(argv=None):
         pp = json.loads(path.read_text(encoding="utf-8"))
         passports[pp["slots"]] = pp
     N = {"series": {s: S[s]["meta"]["run_id"] for s in S}}
-    N["commit"] = sorted({S[s]["meta"]["commit"] for s in S})
+    N["commit"] = {s: S[s]["meta"]["commit"][:7] for s in S}
     N["cpu_load_before"] = {s: S[s]["meta"].get("cpu_load_before_pct") for s in S}
     N["cpu_load_after"] = {s: S[s]["meta"].get("cpu_load_after_pct") for s in S}
     tables = {}
@@ -142,7 +142,9 @@ def main(argv=None):
         fig.suptitle("Эксперимент 1: медиана и диапазон по 5 запросам", fontsize=10)
         fig.tight_layout(); fig.savefig(out / "fig_exp1_ttft.png", dpi=150); plt.close(fig)
         speeds = sp_med
-        N["exp1"] = {"lengths": xs, "ttft_median": tt_med, "prefill_median": sp_med,
+        N["exp1"] = {"ttft_by_len": {k: e["ttft_s"]["median"] for k, e in m["by_length"].items()},
+                     "prefill_by_len": {k: e["prefill_tok_s"]["median"] for k, e in m["by_length"].items()},
+                     "prefill_median": sp_med,
                      "prefill_first": speeds[0], "prefill_last": speeds[-1], "prefill_peak": max(speeds),
                      "prefill_last_to_peak": speeds[-1] / max(speeds),
                      "ttft_ratio_last_first": tt_med[-1] / tt_med[0], "length_ratio_last_first": xs[-1] / xs[0],
@@ -154,9 +156,11 @@ def main(argv=None):
         rows = [[a["attempt"] + 1, ru(a["ttft_s"]), a["prompt_tokens"], a.get("cache_n"), a.get("prompt_n")] for a in m["attempts"]]
         write_csv(out / "exp1_prefix_cache.csv", ["attempt", "ttft_s", "prompt_tokens", "cache_n", "prompt_n"], rows)
         tables["prefix_table"] = md_table(["Попытка", "TTFT, с", "Токенов запроса", "Из кеша, токенов", "Обработано, токенов"], rows)
-        N["prefix"] = {"ttft": [a["ttft_s"] for a in m["attempts"]], "ratio_1_2": m.get("ttft_ratio_1_to_2"),
-                       "ratio_1_3": m.get("ttft_ratio_1_to_3"), "cache_n": [a.get("cache_n") for a in m["attempts"]],
-                       "prompt_tokens": m["attempts"][0]["prompt_tokens"]}
+        at = m["attempts"]
+        N["prefix"] = {"t1": at[0]["ttft_s"], "t2": at[1]["ttft_s"], "t3": at[2]["ttft_s"],
+                       "ratio_1_2": m.get("ttft_ratio_1_to_2"), "ratio_1_3": m.get("ttft_ratio_1_to_3"),
+                       "cache_first": at[0].get("cache_n"), "cache_second": at[1].get("cache_n"),
+                       "prompt_tokens": at[0]["prompt_tokens"]}
 
     # ---- эксперимент 2: длина ответа
     if "exp2_output_length" in S:
@@ -202,18 +206,26 @@ def main(argv=None):
     if "exp3_load" in S:
         m = S["exp3_load"]["metrics"]
         lim = m["limits"]
+        # метрики сервера: в этой сборке llama-server не отдаёт заполнение KV-кеша, но отдаёт максимум токенов в слоте
+        snaps = [json.loads(l) for l in (S["exp3_load"]["dir"] / "snapshots.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+        n_ctx_slot = N["server"][max(N["server"])]["n_ctx_seq"] if "server" in N else None
+        max_tok = {}
+        for sn in snaps:
+            v = sn["metrics"].get("llamacpp:n_tokens_max")
+            if v is not None:
+                max_tok[str(sn["clients"])] = max(max_tok.get(str(sn["clients"]), 0), v)
         rows, xs, thr, tp_med, tt_p90 = [], [], [], [], []
         for n_cl, e in m["levels"].items():
             rows.append([n_cl, e["n_requests"], ru(e["wall_s"], 0), ru(e["throughput_tok_s"]), ru(e["requests_per_s"], 3),
                          ru(e["ttft_median_s"], 1), ru(e["ttft_p90_s"], 1), ru(e["tpot_median_s"] * 1000, 0),
-                         ru(e["goodput_req_s"], 3), e.get("max_requests_deferred"),
-                         ru(e["max_kv_cache_usage_ratio"] * 100, 0) if e.get("max_kv_cache_usage_ratio") is not None else "—",
+                         ru(e["goodput_req_s"], 3), int(e.get("max_requests_deferred") or 0),
+                         f"{max_tok[n_cl]:.0f}" if n_cl in max_tok else "—",
                          "да" if e["within_limits"] else "нет"])
             xs.append(int(n_cl)); thr.append(e["throughput_tok_s"]); tp_med.append(e["tpot_median_s"] * 1000)
             tt_p90.append(e["ttft_p90_s"])
         hdr = ["Клиентов", "Запросов", "Время уровня, с", "Пропускная способность, ток/с", "Запросов/с",
                "TTFT, медиана, с", "TTFT, p90, с", "TPOT, медиана, мс", "Goodput, запр./с",
-               "Макс. в очереди", "Макс. KV, %", "В пределах"]
+               "Макс. в очереди", "Макс. токенов в слоте", "В пределах"]
         write_csv(out / "exp3_levels.csv", hdr, rows)
         tables["exp3_table"] = md_table(hdr, rows)
         fig, ax = plt.subplots(1, 2, figsize=(10, 3.8))
@@ -229,8 +241,28 @@ def main(argv=None):
         ax[0].set_ylabel("TPOT, медиана, мс"); ax[1].set_ylabel("TTFT, 90-й процентиль, с")
         fig.suptitle("Эксперимент 3: пропускная способность и задержка по уровням нагрузки", fontsize=10)
         fig.tight_layout(); fig.savefig(out / "fig_exp3_load.png", dpi=150); plt.close(fig)
+        # разбор: из чего складывается время уровня. Prefill разных запросов идёт по очереди (вычисления),
+        # поэтому его суммарное время берём как число запросов × TTFT одного клиента; остальное — время decode.
+        lv1 = m["levels"][min(m["levels"], key=int)]
+        t_pf = lv1["ttft_median_s"]
+        lv = {}
+        dec1 = None
+        for n_cl, e in m["levels"].items():
+            pf_total = e["n_requests"] * t_pf
+            dec = e["wall_s"] - pf_total
+            if dec1 is None:
+                dec1 = dec
+            n_decode_tokens = sum(r["completion_tokens"] - 1 for r in read_results(S["exp3_load"]["dir"])
+                                  if not r["warmup"] and r["status"] == "ok" and r["condition"]["clients"] == int(n_cl))
+            lv[n_cl] = {"prefill_total_s": pf_total, "prefill_share": pf_total / e["wall_s"], "decode_part_s": dec,
+                        "decode_speedup": dec1 / dec, "decode_ms_per_token": dec / n_decode_tokens * 1000,
+                        "tpot_median_ms": e["tpot_median_s"] * 1000, "ttft_p90_s": e["ttft_p90_s"],
+                        "ttft_median_s": e["ttft_median_s"], "throughput": e["throughput_tok_s"],
+                        "rps": e["requests_per_s"], "goodput": e["goodput_req_s"], "n_good": e["n_good"],
+                        "wall_s": e["wall_s"], "n_requests": e["n_requests"], "goodput_s": ru(e["goodput_req_s"], 3), "max_tokens_slot": max_tok.get(n_cl),
+                        "slot_fill_pct": (max_tok[n_cl] / n_ctx_slot * 100) if n_cl in max_tok and n_ctx_slot else None}
         good = [int(k) for k, e in m["levels"].items() if e["within_limits"]]
-        N["exp3"] = {"limits": lim, "levels": {k: v for k, v in m["levels"].items()},
+        N["exp3"] = {"limits": lim, "tpot_limit_ms": lim["tpot_median_s"] * 1000, "ttft_limit_s": lim["ttft_p90_s"], "lv": lv, "t_prefill_single": t_pf, "levels": {k: v for k, v in m["levels"].items()},
                      "max_clients_within_limits": max(good) if good else None,
                      "throughput_gain_last_first": thr[-1] / thr[0] if thr[0] else None,
                      "tpot_ratio_last_first": tp_med[-1] / tp_med[0], "ttft_ratio_last_first": tt_p90[-1] / tt_p90[0]}
